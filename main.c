@@ -1,163 +1,182 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 
 #define TIME_SPACING 1
+#define MS_OFFSET 200
 
-#define MS_PER_LETTER 45
-#define MS_PER_PERIOD 650
-#define MS_PER_COMMA 250
-#define MS_PER_QUOTE 250
-#define MS_PER_QUESTION 500
-#define MS_PER_ELLIPSIS 600
+#define MS_PER_LETTER 60
+#define MS_PER_WORD 0
+#define MS_PER_PERIOD 0
+#define MS_PER_COMMA 0
+#define MS_PER_QUOTE 0
+#define MS_PER_QUESTION 0
+#define MS_PER_ELLIPSIS 0
+#define MS_PER_EXCAMATION 0
+#define MS_PER_DEFAULT 0
 
-#define MS_PER_OR 600
-#define MS_PER_AND 600
+#define MS_PER_OR 0
+#define MS_PER_AND 0
 
+#define lineBufferSize 500
+#define wordBufferSize 100
+#define symBufferSize 10
 
-void writeTimeline(FILE* writeFile, char *timeLine, int* msElapsedPrev, int* msElapsed, int* writeTimePos, char c);
-void getTimeLine(char *timeLine, int msElapsedPrev, int msElapsed);
-void checkFileStatus(FILE * read, FILE* write);
-int processPeriods(FILE* readFile, FILE* writeFile, char* c);
-int processTime(char c);
-int processJunctionWords(FILE* readFile, FILE* writeFile, char* c);
-int isEllipsis(char *letter);
+void checkFileStatus(FILE ** files, int size);
+int getWord(char* buffer, int size, FILE* readFile, char* c);
+int getSymbol(char* buffer, int size, FILE* readFile, char* c);
+void initSubtitleFile(FILE* writeFile);
+void newSubtitleLine(FILE* writeFile, char* c);
+void getTimeLine(char *buffer, int ms0, int ms1);
 
-
+static char timeLine[54] = "00:00:00,000 --> 00:00:00,000";
+static int msElapsed = 0;
+static int msElapsedPrev = 0;
+static int numSubtitle = 0;
+static int writeTimeLineCursor = 0;
 
 int main()
 {
+    // FILE* config = fopen("config.ini","r");
     FILE* readFile = fopen("read.txt", "r");
     FILE* writeFile = fopen("subtitles.srt", "w");
-    checkFileStatus(readFile, writeFile);
-    char timeLine[] = "00:00:00,000 --> 00:00:00,000";
+    FILE* files[] = {readFile, writeFile};
+    checkFileStatus(files, sizeof(files)/sizeof(files[0]));
 
-    char  c, prev = 0;
-    int msElapsedPrev = 0;
-    int msElapsed = 0;
-
-    int writeTimePos = 0;
     
-    fprintf(writeFile, "1\n%s\n", timeLine);
-    while ((c = fgetc(readFile)) != EOF) {
-        if (c == '\n') continue;
-        else if (c == '.') {
-            msElapsed += processPeriods(readFile, writeFile, &c);
-            writeTimeline(writeFile, timeLine, &msElapsedPrev, &msElapsed, &writeTimePos, c);
-            prev = c;
-            continue;
-        } else if (prev == ' ' && (c == 'o' || c == 'a')) {
-            processJunctionWords(readFile, writeFile, &c);
-        } else {
-            msElapsed += processTime(c);
+    char lineBuffer[lineBufferSize];
+    char wordBuffer[wordBufferSize];
+    char symBuffer[symBufferSize];
+
+    char c;
+    int wordLen, symLen, curLen = 0;
+    
+    
+    initSubtitleFile(writeFile);
+    do {
+        wordLen = getWord(wordBuffer, wordBufferSize, readFile, &c);
+        symLen = getSymbol(symBuffer, symBufferSize, readFile, &c);
+
+        if (curLen + wordLen + symLen > lineBufferSize) {
+            fprintf(writeFile, lineBuffer);
+            newSubtitleLine(writeFile, &c);
+            lineBuffer[0] = '\0';
+            curLen = 0;
         }
-        
-        fprintf(writeFile, "%c", c);
-        prev = c;
-    }
+        strcat(lineBuffer, wordBuffer);
+        strcat(lineBuffer, symBuffer);
+        curLen += wordLen + symLen;
+
+    } while (c != EOF);
+
+    fprintf(writeFile, lineBuffer);
+    newSubtitleLine(writeFile, &c);
 
     fcloseall();
     return 0;
 }
 
-//function definitions
 
-int processJunctionWords(FILE* readFile, FILE* writeFile, char* c) {
-    fprintf(writeFile, "%c", *c);
-
-    int ms = 0, i;
-    char buffer[4] = {0};
-    buffer[0] = tolower(*c);
-    for (i = 2; i < 5; i++) {
-        if ((*c = fgetc(readFile)) == EOF) return i*MS_PER_LETTER;
-        fprintf(writeFile, "%c", *c);
-        buffer[i-1] = tolower(*c);
-        if (*c == ' ') break;
-    }
-
-    if (buffer[0] == 'o' && buffer[1] == 'r' && buffer[2] == ' ') {
-        return MS_PER_OR;
-    } else if (buffer[0] == 'a' && buffer[1] == 'n' && buffer[2] == 'd' && buffer[3] == ' ') {
-        return MS_PER_AND;
-    }
-    return i*MS_PER_LETTER;
-}
-
-int processTime(char c) {
-    static float comma = 1;
-    static int quote = 0;
-    if (ispunct(c)) {
-        if (c == ',') comma++;
-        else comma = 1;
-        if (c == '"') quote++;
-    }
-    if (c == ',') return (int) comma * MS_PER_COMMA;
-    if (c == '\"' && (quote%2 == 0)) return MS_PER_QUOTE;
-    if (c == '?') return MS_PER_QUESTION;
-    return MS_PER_LETTER;
-
-}
-
-int processPeriods(FILE* readFile, FILE* writeFile, char* c) {
-    fprintf(writeFile, "%c", *c);
-    for (int i = 0; i < 2; i++) {
-        if ((*c = fgetc(readFile)) == EOF) return MS_PER_PERIOD;
-        fprintf(writeFile, "%c", *c);
-        if (*c != '.') {
-            return MS_PER_PERIOD;
+int getWord(char* buffer, int size, FILE* readFile, char* c) {
+    int i = 0;
+    char letter;
+    while ((letter = *c = fgetc(readFile)) != EOF && i < size) {
+        if (!(isalpha(letter) || isdigit(letter))) {
+            ungetc(*c, readFile);
+            break;
         };
+        buffer[i++] = letter;
     }
-    return MS_PER_ELLIPSIS;
+    buffer[i++] = '\0';
+
+    //TIMING
+    msElapsed += MS_PER_WORD + i*MS_PER_LETTER;
+
+    return strlen(buffer);
 }
 
-void writeTimeline(FILE* writeFile, char *timeLine, int* msElapsedPrev, int* msElapsed, int* writeTimePos, char c) {
-    static int numSubtitles = 0;
-    numSubtitles++;
-    fseek(writeFile, *writeTimePos, SEEK_SET);
-    getTimeLine(timeLine, *msElapsedPrev, *msElapsed);        
-    fprintf(writeFile, "%d\n%s", numSubtitles, timeLine);
+int getSymbol(char* buffer, int size, FILE* readFile, char* c) {
+    int i = 0;
+    char letter, prev = 0;
+    while ((letter = *c = fgetc(readFile)) != EOF && i < size) {
+        if (letter == '\n') { 
+            prev = letter;
+            continue;
+        }
+
+        if (isalpha(letter) || isdigit(letter)) {
+            if (prev == '\n' && !isdigit(letter)) {
+                buffer[i++] = ' ';
+            };
+            ungetc(*c, readFile);
+            break;
+        };
+        buffer[i++] = letter;
+        prev = letter;
+    }
+    buffer[i++] = '\0';
+
+    //TIMING
+    if (buffer[0] == '.') {
+        if (buffer[1] == '.') msElapsed += MS_PER_ELLIPSIS;
+        else msElapsed += MS_PER_PERIOD;
+    }
+    else if (buffer[0] == ',') msElapsed += MS_PER_COMMA;
+    else if (buffer[0] == '\"') msElapsed += MS_PER_QUOTE;
+    else if (buffer[0] == '!') msElapsed += MS_PER_EXCAMATION;
+    else if (buffer[0] == '?') msElapsed += MS_PER_QUESTION;
+    else msElapsed += MS_PER_DEFAULT;
+
+    return strlen(buffer);
+}
+
+void checkFileStatus(FILE ** files, int size) {
+    for (int i = 0; i < size; i++) {
+        if (files[i] == NULL) {
+            fprintf(stderr, "404: Unable to open file!\n");
+            fcloseall();
+            exit(404);
+        }
+    }
+} 
+
+void getTimeLine(char *buffer, int ms0, int ms1) {
+    msElapsed += MS_OFFSET;
+    int hrPrev, minPrev, secPrev, hr, min, sec;
+    hrPrev = ms0/3600000;
+    ms0 -= hrPrev*3600000;
+    minPrev = ms0/60000;
+    ms0 -= minPrev*60000;
+    secPrev = ms0/1000;
+    ms0 -= secPrev*1000;
+
+    hr = ms1/3600000;
+    ms1 -= hr*3600000;
+    min = ms1/60000;
+    ms1 -= min*60000;
+    sec = ms1/1000;
+    ms1 -= sec*1000;
     
-    *msElapsedPrev = *msElapsed + TIME_SPACING;
+    snprintf(buffer, 54, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d", hrPrev%100, minPrev%60, secPrev%60, ms0%1000, hr%100, min%60, sec%60, ms1%1000);
+    msElapsedPrev = msElapsed + TIME_SPACING;
     
+}
+
+void newSubtitleLine(FILE* writeFile, char* c) {
+    getTimeLine(timeLine, msElapsedPrev, msElapsed);
+    fseek(writeFile, writeTimeLineCursor, SEEK_SET);
+    fprintf(writeFile, "%d\n%s\n", ++numSubtitle, timeLine);
 
     fseek(writeFile, 0, SEEK_END);
-    fprintf(writeFile, "\n\n");
-    *writeTimePos = ftell(writeFile);
-
-    if (c != EOF) {
-        fprintf(writeFile, "%d\n%s\n", numSubtitles+1, timeLine);
-    }
-    
-}
-
-void getTimeLine(char *timeLine, int msElapsedPrev, int msElapsed) {
-    int hrPrev, minPrev, secPrev, hr, min, sec;
-    hrPrev = msElapsedPrev/3600000;
-    msElapsedPrev -= hrPrev*3600000;
-    minPrev = msElapsedPrev/60000;
-    msElapsedPrev -= minPrev*60000;
-    secPrev = msElapsedPrev/1000;
-    msElapsedPrev -= secPrev*1000;
-
-    hr = msElapsed/3600000;
-    msElapsed -= hr*3600000;
-    min = msElapsed/60000;
-    msElapsed -= min*60000;
-    sec = msElapsed/1000;
-    msElapsed -= sec*1000;
-    
-    snprintf(timeLine, 30, "%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d",hrPrev, minPrev, secPrev, msElapsedPrev, hr, min, sec, msElapsed);
-}
-
-void checkFileStatus(FILE * read, FILE* write) {
-    if (read == NULL || write == NULL) {
-        fprintf(stderr, "Unable to open file!\n");
-        fcloseall();
+    if (*c != EOF) {
+        fprintf(writeFile, "\n\n");
+        writeTimeLineCursor = ftell(writeFile);
+        initSubtitleFile(writeFile);
     }
 }
 
-int isEllipsis(char *letter) {
-    if (letter[0] == '.' &&  letter[1] == '.' && letter[2] == '.') return 3;
-    return 0;
+void initSubtitleFile(FILE* writeFile) {
+    fprintf(writeFile, "%d\n%s\n", numSubtitle+1, timeLine);
 }
