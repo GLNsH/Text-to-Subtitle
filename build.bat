@@ -1,0 +1,1 @@
+gcc main.c config.c -Wall -W -O -o main.exe && main

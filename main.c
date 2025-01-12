@@ -4,54 +4,59 @@
 #include <string.h>
 #include <ctype.h>
 
-#define TIME_SPACING 1
-#define MS_OFFSET 200
+extern char READ_FILE_DIR[500];
+extern char SUBTITLE_FILE_DIR[500];
 
-#define MS_PER_LETTER 60
-#define MS_PER_WORD 0
-#define MS_PER_PERIOD 0
-#define MS_PER_COMMA 0
-#define MS_PER_QUOTE 0
-#define MS_PER_QUESTION 0
-#define MS_PER_ELLIPSIS 0
-#define MS_PER_EXCAMATION 0
-#define MS_PER_DEFAULT 0
+extern int TIME_SPACING;
+extern int MS_OFFSET;
 
-#define MS_PER_OR 0
-#define MS_PER_AND 0
+extern int MS_PER_LETTER;
+extern int MS_PER_WORD;
+extern int MS_PER_PERIOD;
+extern int MS_PER_COMMA;
+extern int MS_PER_QUOTE;
+extern int MS_PER_QUESTION;
+extern int MS_PER_ELLIPSIS;
+extern int MS_PER_EXCAMATION;
+extern int MS_PER_DEFAULT;
 
-#define lineBufferSize 500
-#define wordBufferSize 100
-#define symBufferSize 10
+extern int MS_PER_OR;
+extern int MS_PER_AND;
 
-void checkFileStatus(FILE ** files, int size);
-int getWord(char* buffer, int size, FILE* readFile, char* c);
-int getSymbol(char* buffer, int size, FILE* readFile, char* c);
-void initSubtitleFile(FILE* writeFile);
-void newSubtitleLine(FILE* writeFile, char* c);
-void getTimeLine(char *buffer, int ms0, int ms1);
+extern int LINE_BUFFER_SIZE;
+extern int WORD_BUFFER_SIZE;
+extern int PUNCT_BUFFER_SIZE;
+
+int     getWord(char* buffer, int size, FILE* readFile, char* c);
+int     getSymbol(char* buffer, int size, FILE* readFile, char* c);
+void    checkFileStatus(FILE ** files, int size);
+void    initSubtitleFile(FILE* writeFile);
+void    newSubtitleLine(FILE* writeFile, char* c);
+void    getTimeLine(char *buffer, int ms0, int ms1);
+void    loadConfig(FILE* config);
 
 static char timeLine[54] = "00:00:00,000 --> 00:00:00,000";
-static int msElapsed = 0;
-static int msElapsedPrev = 0;
-static int numSubtitle = 0;
-static int writeTimeLineCursor = 0;
+static int  msElapsed = 0;
+static int  msElapsedPrev = 0;
+static int  numSubtitle = 0;
+static int  writeTimeLineCursor = 0;
 
 int main()
 {
-    //TODO: ADD CONFIG
-    // FILE* config = fopen("config.ini","r");
+    // TODO: ADD CONFIG
+    FILE* config = fopen("config.ini","r");
+    loadConfig(config);
 
 
-    FILE* readFile = fopen("read.txt", "r");
-    FILE* writeFile = fopen("C:\\Glensh\\WORK\\Glensh\\subtitles.srt", "w");
+    FILE* readFile = fopen(READ_FILE_DIR, "r");
+    FILE* writeFile = fopen("subtitles.srt", "w");
     FILE* files[] = {readFile, writeFile};
     checkFileStatus(files, sizeof(files)/sizeof(files[0]));
 
     
-    char lineBuffer[lineBufferSize];
-    char wordBuffer[wordBufferSize];
-    char symBuffer[symBufferSize];
+    char lineBuffer[LINE_BUFFER_SIZE];
+    char wordBuffer[WORD_BUFFER_SIZE];
+    char symBuffer[PUNCT_BUFFER_SIZE];
 
     char c;
     int wordLen, symLen, curLen = 0;
@@ -59,10 +64,10 @@ int main()
     
     initSubtitleFile(writeFile);
     do {
-        wordLen = getWord(wordBuffer, wordBufferSize, readFile, &c);
-        symLen = getSymbol(symBuffer, symBufferSize, readFile, &c);
+        wordLen = getWord(wordBuffer, WORD_BUFFER_SIZE, readFile, &c);
+        symLen = getSymbol(symBuffer, PUNCT_BUFFER_SIZE, readFile, &c);
 
-        if (curLen + wordLen + symLen > lineBufferSize) {
+        if (curLen + wordLen + symLen > LINE_BUFFER_SIZE) {
             fprintf(writeFile, lineBuffer);
             newSubtitleLine(writeFile, &c);
             lineBuffer[0] = '\0';
