@@ -39,7 +39,10 @@ static int writeTimeLineCursor = 0;
 
 int main()
 {
+    //TODO: ADD CONFIG
     // FILE* config = fopen("config.ini","r");
+
+
     FILE* readFile = fopen("read.txt", "r");
     FILE* writeFile = fopen("C:\\Glensh\\WORK\\Glensh\\subtitles.srt", "w");
     FILE* files[] = {readFile, writeFile};
