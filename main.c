@@ -41,7 +41,7 @@ int main()
 {
     // FILE* config = fopen("config.ini","r");
     FILE* readFile = fopen("read.txt", "r");
-    FILE* writeFile = fopen("subtitles.srt", "w");
+    FILE* writeFile = fopen("C:\\Glensh\\WORK\\Glensh\\subtitles.srt", "w");
     FILE* files[] = {readFile, writeFile};
     checkFileStatus(files, sizeof(files)/sizeof(files[0]));
 
