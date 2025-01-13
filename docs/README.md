@@ -5,14 +5,27 @@ The purpose of this small program is to solve a simple problem, that is ***"how 
 Nah, not really. I wanted to convert ***transcript text to timed subtitles**, so that I can feed the **subtitles to a text-to-speech** program which in turn creates a **voice over for free**.
 
 ## Features
-- Manual configuration of subtitle timings through ```config.ini```
+
+- Custom configuration of subtitle timings through ```config.ini```
 - Length of subtile per line can be changed
 
-## Building
+## Using SubText
+
+I appologize, I only know gcc to build all of my codes as of wrtiting this readme.
+
+- Build ```main.c``` and ```config.c``` in the ```src``` folder using ```gcc```
+
 ```ps
 gcc src\main.c src\config.c -Wall -W -O -o main
 ```
-I appologize, I only know gcc to build all of my codes as of wrtiting this readme.
+
+- Run the ```main``` application, this will create initialize the ```config.ini``` and ```read.txt```.
+
+- In ```read.txt``` paste the text you want to convert to subtitles.
+
+- Then, run the ```main``` application again, this will produce ```subtitles.srt``` which you can now use.
+
+<br>
 
 ## Configuration ```config.ini```
 

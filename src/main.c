@@ -42,6 +42,7 @@ int main()
 {
     // TODO: MODIFY lineBuffer to insert timeline at periods
     // TODO: ADJUST TIMINGS;
+
     loadConfig();
     FILE* readFile = fopen(READ_FILE_DIR, "r");
     if (readFile == NULL) initReadFile();
