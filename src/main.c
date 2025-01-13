@@ -6,10 +6,8 @@
 
 extern char READ_FILE_DIR[500];
 extern char SUBTITLE_FILE_DIR[500];
-
 extern int TIME_SPACING;
 extern int MS_OFFSET;
-
 extern int MS_PER_LETTER;
 extern int MS_PER_WORD;
 extern int MS_PER_PERIOD;
@@ -19,10 +17,8 @@ extern int MS_PER_QUESTION;
 extern int MS_PER_ELLIPSIS;
 extern int MS_PER_EXCAMATION;
 extern int MS_PER_DEFAULT;
-
 extern int MS_PER_OR;
 extern int MS_PER_AND;
-
 extern int LINE_BUFFER_SIZE;
 extern int WORD_BUFFER_SIZE;
 extern int PUNCT_BUFFER_SIZE;
@@ -33,7 +29,8 @@ void    checkFileStatus(FILE ** files, int size);
 void    initSubtitleFile(FILE* writeFile);
 void    newSubtitleLine(FILE* writeFile, char* c);
 void    getTimeLine(char *buffer, int ms0, int ms1);
-void    loadConfig(FILE* config);
+void    loadConfig();
+void    initReadFile();
 
 static char timeLine[54] = "00:00:00,000 --> 00:00:00,000";
 static int  msElapsed = 0;
@@ -43,19 +40,13 @@ static int  writeTimeLineCursor = 0;
 
 int main()
 {
-    // TODO: FIX CONFIG
     // TODO: MODIFY lineBuffer to insert timeline at periods
     // TODO: ADJUST TIMINGS;
-    
-    // FILE* config = fopen("config.ini","r");
-    // loadConfig(config);
-
-
+    loadConfig();
     FILE* readFile = fopen(READ_FILE_DIR, "r");
+    if (readFile == NULL) initReadFile();
     FILE* writeFile = fopen(SUBTITLE_FILE_DIR, "w");
-    FILE* files[] = {readFile, writeFile};
-    checkFileStatus(files, sizeof(files)/sizeof(files[0]));
-
+    
     
     char lineBuffer[LINE_BUFFER_SIZE];
     char wordBuffer[WORD_BUFFER_SIZE];
@@ -146,7 +137,7 @@ int getSymbol(char* buffer, int size, FILE* readFile, char* c) {
 void checkFileStatus(FILE ** files, int size) {
     for (int i = 0; i < size; i++) {
         if (files[i] == NULL) {
-            fprintf(stderr, "404: Unable to open file!\n");
+            fprintf(stderr, "Unable to open read and write file! Exiting app\n");
             fcloseall();
             exit(404);
         }
@@ -190,4 +181,10 @@ void newSubtitleLine(FILE* writeFile, char* c) {
 
 void initSubtitleFile(FILE* writeFile) {
     fprintf(writeFile, "%d\n%s\n", numSubtitle+1, timeLine);
+}
+
+void initReadFile() {
+    fprintf(stderr, "%s not found, initializing read file!\n", READ_FILE_DIR);
+    fclose(fopen(READ_FILE_DIR, "w"));
+    exit(0);
 }
