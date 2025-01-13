@@ -3,8 +3,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-char READ_FILE_DIR[500];
-char SUBTITLE_FILE_DIR[500];
+char READ_FILE_DIR[500] = "read.txt";
+char SUBTITLE_FILE_DIR[500] = "subtitles.srt";
 
 int TIME_SPACING = 1;
 int MS_OFFSET = 200;
@@ -45,13 +45,10 @@ void loadConfig(FILE* config) {
         do {
             val = strtok(NULL," \"=");
             if (strcmp(key, "READ_FILE_DIR") == 0) {
-                if (strlen(val) > 3) {
-                    strcpy(READ_FILE_DIR, val);
-                }
+
+                strcpy(READ_FILE_DIR, val);
             } else if (strcmp(key, "SUBTITLE_FILE_DIR") == 0) {
-                if (strlen(val) > 3) {
-                    strcpy(SUBTITLE_FILE_DIR, val);
-                }
+                strcpy(SUBTITLE_FILE_DIR, val);
             } else if (strcmp(key, "TIME_SPACING") == 0) {
                 TIME_SPACING = (atoi(val)) ? atoi(val) : TIME_SPACING;
             } else if (strcmp(key, "MS_OFFSET") == 0) {

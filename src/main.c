@@ -43,13 +43,16 @@ static int  writeTimeLineCursor = 0;
 
 int main()
 {
-    // TODO: ADD CONFIG
-    FILE* config = fopen("config.ini","r");
-    loadConfig(config);
+    // TODO: FIX CONFIG
+    // TODO: MODIFY lineBuffer to insert timeline at periods
+    // TODO: ADJUST TIMINGS;
+    
+    // FILE* config = fopen("config.ini","r");
+    // loadConfig(config);
 
 
     FILE* readFile = fopen(READ_FILE_DIR, "r");
-    FILE* writeFile = fopen("subtitles.srt", "w");
+    FILE* writeFile = fopen(SUBTITLE_FILE_DIR, "w");
     FILE* files[] = {readFile, writeFile};
     checkFileStatus(files, sizeof(files)/sizeof(files[0]));
 
