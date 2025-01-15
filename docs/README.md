@@ -1,4 +1,4 @@
-# SubText: TXT to SRT file
+# Text to Subtitle: TXT to SRT file
 
 The purpose of this small program is to solve a simple problem, that is ***"how do I convert a transcript file to subtitles conveniently?".***
 
