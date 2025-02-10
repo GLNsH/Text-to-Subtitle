@@ -62,16 +62,24 @@ int main()
         wordLen = getWord(wordBuffer, WORD_BUFFER_SIZE, readFile, &c);
         symLen = getSymbol(symBuffer, PUNCT_BUFFER_SIZE, readFile, &c);
 
-        if (curLen + wordLen + symLen > LINE_BUFFER_SIZE) {
+        if ((curLen + wordLen + symLen > LINE_BUFFER_SIZE)) {
             fprintf(writeFile, lineBuffer);
             newSubtitleLine(writeFile, &c);
             lineBuffer[0] = '\0';
             curLen = 0;
         }
+
         strcat(lineBuffer, wordBuffer);
         strcat(lineBuffer, symBuffer);
-        curLen += wordLen + symLen;
 
+        if (c == '\n') {
+            fprintf(writeFile, lineBuffer);
+            newSubtitleLine(writeFile, &c);
+            lineBuffer[0] = '\0';
+            curLen = 0;
+        }
+
+        curLen += wordLen + symLen;
     } while (c != EOF);
 
     fprintf(writeFile, lineBuffer);
@@ -105,14 +113,10 @@ int getSymbol(char* buffer, int size, FILE* readFile, char* c) {
     char letter, prev = 0;
     while ((letter = *c = fgetc(readFile)) != EOF && i < size) {
         if (letter == '\n') { 
-            prev = letter;
-            continue;
+            break;
         }
 
         if (isalpha(letter) || isdigit(letter)) {
-            if (prev == '\n' && !isdigit(letter)) {
-                buffer[i++] = ' ';
-            };
             ungetc(*c, readFile);
             break;
         };
